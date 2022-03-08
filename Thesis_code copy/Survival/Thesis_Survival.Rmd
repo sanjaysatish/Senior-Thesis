@@ -1,0 +1,157 @@
+---
+title: "Thesis_Survival"
+author: "Sanjay Satish"
+date: "3/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(flextable)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(stargazer)
+library(scales)
+library(pROC)
+library(patchwork)
+library(survminer)
+library(survival)
+library(foreign)
+library(kableExtra)
+library(ggplot2)
+library(broom)
+library(GGally)
+library(tidyr)
+library(knitr)
+library(xtable)
+
+students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_Students.tab", header = T, sep = "\t", fill = TRUE)
+schools <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_K-3_Schools.tab", header = T, sep = "\t", fill = TRUE)
+comparison_students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/Comparison_Students.tab", header = T, sep = "\t", fill = TRUE)
+
+
+# Converting test scores to numeric types
+students$g1tmathss <- as.numeric(students$g1tmathss)
+students$g1treadss <- as.numeric(students$g1treadss)
+students$g1tlistss <- as.numeric(students$g1tlistss)
+students$g1wordskillss <- as.numeric(students$g1wordskillss)
+
+students$gktmathss <- as.numeric(students$gktmathss)
+students$gktreadss <- as.numeric(students$gktreadss)
+students$gktlistss <- as.numeric(students$gktlistss)
+students$gkwordskillss <- as.numeric(students$gkwordskillss)
+
+students$g2tmathss <- as.numeric(students$g2tmathss)
+students$g3tmathss <- as.numeric(students$g3tmathss)
+
+# If score NA, resetting to 0 to allow for missing value sums
+students$g1tmathss[is.na(students$g1tmathss)] = 0
+students$g2tmathss[is.na(students$g2tmathss)] = 0
+students$g3tmathss[is.na(students$g3tmathss)] = 0
+students$gktmathss[is.na(students$gktmathss)] = 0
+
+```
+
+# Survival Analysis 
+
+## Data Wrangling:
+
+```{r}
+students <- students %>%
+  rename(flagsgk = var6, flagsg1 = var7, flagsg2 = var8, flagsg3 = var9) 
+
+students_survival <- students %>%
+  filter(yearsstar != 0)
+```
+
+### Data for 
+
+## Kaplan-Meier Plot (Only on kids in kindergarten entry wave)
+
+### Income 
+
+### Ability
+
+### Class Type 
+
+### School Rurality 
+```{r}
+students_survival <- students %>%
+  filter(yearsstar != 0) %>% 
+  mutate(averagemathscores_acrossexp = (gktmathss + g1tmathss + g2tmathss + g3tmathss)/(yearsstar), freereduced_average = ((gkfreelunch + g1freelunch + g2freelunch + g3freelunch)/(yearsstar))) %>%
+  mutate(high_ability = case_when(averagemathscores_acrossexp >= 579 ~ 1, averagemathscores_acrossexp < 579 ~ 0), freereduced_allyears = case_when(freereduced_average == 1 ~ 1, freereduced_average > 1 & freereduced_average < 2 ~ 2, freereduced_average == 2 ~ 3)) %>% 
+  select(flagsg3, cmpstype, yearsstar, race, gender, stdntid, averagemathscores_acrossexp, high_ability, freereduced_average, freereduced_allyears)
+ 
+fit_ct <- survfit(Surv(yearsstar, flagsg3) ~ cmpstype, data = students_survival)
+
+ggsurvplot(fit_ct, data = students_survival, title = "Survival Probabilities by Class Type",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = F,legend.labs = c("Small", "Regular", "Aide"))
+
+fit_freereduced <- survfit(Surv(yearsstar, flagsg3) ~ freereduced_allyears, data = students_survival)
+
+ggsurvplot(fit_freereduced, data = students_survival, title = "Survival Probabilities by Free Lunch Status",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = F,legend.labs = c("Free Lunch all years","Free Lunch some years", "Not on Free Lunch"))
+
+
+fit_race <- survfit(Surv(yearsstar, flagsg3) ~ race, data = students_survival)
+
+ggsurvplot(fit_race, data = students_survival, title = "Survival Probabilities by Race",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = F, censor = F,legend.labs = c("White", "Black", "Asian", "Hispanic", "Native American", "Other"))
+
+fit_gender <- survfit(Surv(yearsstar, flagsg3) ~ gender, data = students_survival)
+
+ggsurvplot(fit_gender, data = students_survival, title = "Survival Probabilities by Gender",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = F,legend.labs = c("Male","Female"))
+
+
+fit_ability <- survfit(Surv(yearsstar, flagsg3) ~ high_ability, data = students_survival)
+
+ggsurvplot(fit_ability, data = students_survival, title = "Survival Probabilities by Student Ability in Math ",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = F,legend.labs = c("75th percentile or higher","Lower than 75th percentile"))
+
+```
+
+ 
+## Survival Model for those in Kindergarten Entry Wave
+
+```{r}
+attrition1 <- star_students %>%
+  filter(flaggk == 1) %>%
+  mutate(total_score = gktmathss + gktreadss + gktlistss + gkwordskillss, gkclasstype = as.factor(gkclasstype), gktgen = as.factor(gktgen), gksurban = as.factor(gksurban), gktrace = as.factor(gktrace), flagg1 = as.factor(flagg1), gkfreelunch = as.factor(case_when(gkfreelunch == 1 ~ 1,gkfreelunch == 2 ~ 0)), gkspeced = as.factor(case_when(gkspeced == 1 ~ 0,gkspeced == 2 ~ 1)), race = as.factor(race), gender = as.factor(gender)) %>%
+  select(total_score, gkclasstype, gktgen, gksurban, gktrace, gktyears, gkclasssize, gkfreelunch, gkspeced, flagg1, race, gender)
+
+# Model of attrition between k to 1st grade, note teacher gender not controlled for as there are only female teachers in gk
+model_k1 <- glm(flagg1 ~ total_score + gkclasstype + gksurban + gktrace + gktyears + gkclasssize + gkfreelunch + gkspeced + race + gender, data = attrition1, family = "binomial")
+
+#Model summary
+summary(model_k1)
+```
+
+```{r fig:model, fig.cap="\\label{fig:model}", fig.align = 'center'}
+#Knitting Model summary into a readable table for view in PDF format
+model_k1 %>%
+  tidy() %>%
+  mutate(
+    p.value = scales::pvalue(p.value),
+    term = c("Intercept", "Total Score", "Regular Class", "Class w/ Aide", "School Suburban", "School Rural", "School Urban", "Teacher Race: Black", "Teacher Experience (yrs.)", "Class Size", "Free Lunch", "Special Education", "Student Race: Black", "Student Race: Asian", "Student Race: Hispanic", "Student Race: Native American", "Student Race: Other", "Student Gender: Female"),
+  ) %>%
+  kable(
+    caption = "Coefficient-Level Estimates for Model Fitted to Estimate Mortality Risk",
+    col.names = c("Covariate", "Coefficient", "Standard Error", "Z-Statistic", "P-Value"),
+    digits = c(0, 2, 3, 2, 5)
+    
+  ) 
+
+image <- stargazer(model_k1, title="Coefficient-Level Estimates for Model Fitted to Estimate Attrition between K and 1st Grade", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", covariate.labels = c("Total Score", "Regular Class", "Class w/ Aide", "School Suburban", "School Rural", "School Urban", "Teacher Race: Black", "Teacher Experience (yrs.)", "Class Size", "Free Lunch", "Special Education", "Student Race: Black", "Student Race: Asian", "Student Race: Hispanic", "Student Race: Native American", "Student Race: Other", "Student Gender: Female"))
+writeLines(capture.output(image), "/Users/Sanscubed/Desktop/Example1.tex")
+
+```
+
+## Survival Model for those in 1st grade entry wave
