@@ -1,0 +1,155 @@
+---
+title: "Thesis_PeerEffects_K2"
+author: "Sanjay Satish"
+date: "3/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(flextable)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(stargazer)
+library(scales)
+library(pROC)
+library(clusterSEs)
+library(patchwork)
+library(survminer)
+library(ggsci)
+library(survival)
+library(plm)
+library(foreign)
+library(kableExtra)
+library(ggplot2)
+library("lmtest")
+library("sandwich")
+library(broom)
+library(GGally)
+library(tidyr)
+library(knitr)
+library(xtable)
+
+students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_Students.tab", header = T, sep = "\t", fill = TRUE)
+comparison_students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/Comparison_Students.tab", header = T, sep = "\t", fill = TRUE)
+schools_spss <- read.spss("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/Project STAR/STAR_K-3_Schools.sav", to.data.frame=TRUE)
+schools <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_K-3_Schools.tab", header = T, sep = "\t", fill = TRUE)
+# Converting test scores to numeric types
+students$g1tmathss <- as.numeric(students$g1tmathss)
+students$g1treadss <- as.numeric(students$g1treadss)
+students$g1tlistss <- as.numeric(students$g1tlistss)
+students$g1wordskillss <- as.numeric(students$g1wordskillss)
+
+students$gktmathss <- as.numeric(students$gktmathss)
+students$gktreadss <- as.numeric(students$gktreadss)
+students$gktlistss <- as.numeric(students$gktlistss)
+students$gkwordskillss <- as.numeric(students$gkwordskillss)
+
+students$g2tmathss <- as.numeric(students$g2tmathss)
+students$g2treadss <- as.numeric(students$g2treadss)
+students$g2tlistss <- as.numeric(students$g2tlistss)
+students$g2wordskillss <- as.numeric(students$g2wordskillss)
+
+```
+
+# General Peer Effects
+
+## Data Wrangling:
+
+```{r}
+students <- students %>%
+  rename(flagsgk = var6, flagsg1 = var7, flagsg2 = var8, flagsg3 = var9) 
+```
+
+## First to Second Grade
+
+```{r}
+students_peereffects_12 <- students %>%
+  filter(yearsstar != 0,  flagsg1 ==1) %>%
+  mutate(did_leave = case_when(flagsg2 == 0 ~ 1, flagsg2 == 1 ~ 0)) %>%
+  mutate(total_math_reading_2 = g2tmathss + g2treadss + g2tlistss + g2wordskillss, total_math_reading_1 = g1tmathss + g1treadss + g1tlistss + g1wordskillss, switched_schools = case_when(g2schid == g1schid ~ 0, g2schid != g1schid ~ 1), g2t_masters = case_when(g2thighdegree == 2 | g2thighdegree == 1 ~ 0, g2thighdegree >= 3 ~ 1), g1t_masters = case_when(g1thighdegree == 2 | g1thighdegree == 1 ~ 0, g1thighdegree >= 3 ~ 1)) 
+
+
+# Prop Leavers
+students_peereffects_12 <- students_peereffects_12 %>%
+  group_by(g1schid, g1tchid) %>%
+  mutate(prop_leavers = (sum(did_leave)/g1classsize)*100) %>%
+  mutate(log_prop_leavers = log(prop_leavers))
+
+# Leaver Means & Variances - Brute Force Method
+students_peereffects_12 <- students_peereffects_12 %>%
+  group_by(g1schid, g1tchid) %>%
+  mutate(leaver_scores = case_when(did_leave == 1 ~ total_math_reading_1, did_leave == 0 ~ 0), leaver_score_exists = case_when(did_leave == 1 & total_math_reading_1 >= 0 ~ 1, did_leave == 0 ~ 0)) %>%
+  mutate(leaver_mean = sum(leaver_scores, na.rm = T)/sum(leaver_score_exists, na.rm = T), leaver_variance = var(leaver_scores[leaver_scores!=0], na.rm=T))
+```
+
+```{r}
+# Leave one out mean for 1
+students_peereffects_12 <- students_peereffects_12 %>%
+  group_by(g1schid, g1tchid) %>%
+  mutate(staying_score_exists = case_when(did_leave == 0 & total_math_reading_1 >= 0 ~ 1, did_leave == 1 ~ 0)) %>%
+  mutate(leave_one_out_avg1 = (sum(total_math_reading_1[staying_score_exists==1], na.rm = T)-total_math_reading_1) / (sum(staying_score_exists, na.rm = T) -1)) 
+
+# Leave one out mean for g2
+# need to get average of all kids so no filtering for 1 cohort
+
+leave_o1 <- students %>%
+  group_by(g2schid, g2tchid) %>%
+  mutate(total_math_reading_2 = g2tmathss + g2treadss + g2tlistss + g2wordskillss) %>%
+  mutate(leave_one_out_avg2 = (sum(total_math_reading_2, na.rm = T)-total_math_reading_2)/(length(total_math_reading_2[!is.na(total_math_reading_2)])-1)) %>%
+  select(stdntid, leave_one_out_avg2, g2tchid, g2schid)
+
+students_peereffects_12 <- merge(students_peereffects_12,leave_o1,by=c("stdntid", "g2tchid", "g2schid"))
+
+# School Characteristics
+schools_1 <- schools %>%
+  select(schid, var2, var4, var21, var22) %>%
+  rename(g1schid = "schid",grdrange = "var2", flag_s1 = "var4", g1_fl = "var21", g1_bus = "var22") %>%
+  filter(flag_s1 == 1)
+
+schools_2 <- schools %>%
+  select(schid, var5, var33, var34) %>%
+  rename(g2schid = "schid", flag_s2 = "var5", g2_fl = "var33", g2_bus = "var34") %>%
+  filter(flag_s2 == 1) 
+  
+students_peereffects_12 <- merge(students_peereffects_12,schools_1,by="g1schid")
+  
+students_peereffects_12 <- merge(students_peereffects_12,schools_2,by="g2schid")
+
+
+```
+
+# Regression : Kindergarten to 1st Grade
+
+```{r}
+# Regression Data
+
+peereffect_12_reg_data <- students_peereffects_12 %>%
+  filter(flagsg1 == 1 & flagsg2 == 1) %>%
+  filter(g1schid == g2schid)
+
+
+peereffects_no_fe <- lm(total_math_reading_2 ~ total_math_reading_1 + prop_leavers + leaver_mean + leaver_variance + prop_leavers * leaver_mean + prop_leavers * leaver_variance + as.factor(g1classtype) + as.factor(g2classtype) + leave_one_out_avg1 + leave_one_out_avg2 + as.factor(race) + as.factor(gender) + as.factor(g1freelunch) + as.factor(g2freelunch) + g1absent + as.factor(g1speced) + as.factor(g1specin) + as.factor(g2trace) + as.factor(g2t_masters) + g2tyears + as.factor(g1trace) + as.factor(g1t_masters) + g1tyears + as.factor(g2surban) + as.factor(grdrange) + g2_fl + g2_bus + g1_fl + g1_bus, data = peereffect_12_reg_data)
+ 
+
+peereffects_with_fe <- plm(total_math_reading_2 ~ total_math_reading_1 + prop_leavers + leaver_mean + leaver_variance + prop_leavers * leaver_mean + prop_leavers * leaver_variance + as.factor(g1classtype) + as.factor(g2classtype) + leave_one_out_avg1 + leave_one_out_avg2 + as.factor(race) + as.factor(gender) + as.factor(g1freelunch) + as.factor(g2freelunch) + g1absent + as.factor(g1speced) + as.factor(g1specin) + as.factor(g2trace) + as.factor(g2t_masters) + g2tyears + as.factor(g1trace) + as.factor(g1t_masters) + g1tyears + as.factor(g2surban) + as.factor(grdrange) + g2_fl + g2_bus + g1_fl + g1_bus, data = peereffect_12_reg_data,
+                    index = c("g1schid"), 
+                    model = "within")
+
+peereffects_with_fe_mathscore <- plm(g2tmathss ~ total_math_reading_1 + prop_leavers + leaver_mean + leaver_variance + prop_leavers * leaver_mean + prop_leavers * leaver_variance + as.factor(g1classtype) + as.factor(g2classtype) + leave_one_out_avg1 + leave_one_out_avg2 + as.factor(race) + as.factor(gender) + as.factor(g1freelunch) + as.factor(g2freelunch) + g1absent + as.factor(g1speced) + as.factor(g1specin) + as.factor(g2trace) + as.factor(g2t_masters) + g2tyears + as.factor(g1trace) + as.factor(g1t_masters) + g1tyears + as.factor(g2surban) + as.factor(grdrange) + g2_fl + g2_bus + g1_fl + g1_bus, data = peereffect_12_reg_data,
+                    index = c("g1schid"), 
+                    model = "within")
+
+peereffects_with_fe_readscore <- plm(g2treadss ~ total_math_reading_1 + prop_leavers + leaver_mean + leaver_variance + prop_leavers * leaver_mean + prop_leavers * leaver_variance + as.factor(g1classtype) + as.factor(g2classtype) + leave_one_out_avg1 + leave_one_out_avg2 + as.factor(race) + as.factor(gender) + as.factor(g1freelunch) + as.factor(g2freelunch) + g1absent + as.factor(g1speced) + as.factor(g1specin) + as.factor(g2trace) + as.factor(g2t_masters) + g2tyears + as.factor(g1trace) + as.factor(g1t_masters) + g1tyears + as.factor(g2surban) + as.factor(grdrange) + g2_fl + g2_bus + g1_fl + g1_bus, data = peereffect_12_reg_data,
+                    index = c("g1schid"), 
+                    model = "within")
+```
+
+# Regression Tables 
+
+```{r}
+compressed_table <- stargazer(peereffects_no_fe, peereffects_with_fe, peereffects_with_fe_mathscore, peereffects_with_fe_readscore, title="Coefficient-Level Estimates for Peer Effects among Kindergarten Entry Cohort", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", omit = c("gender", "race", "g2tyears", "g2absent", "grdrange", "g2_fl", "g2_bus", "g1freelunch", "g1absent", "g2speced", "g2specin", 'g1speced', "g1specin", "g2trace", "g2t_masters", "g1trace",  "g1t_masters",  "g1tyears",  "g2surban", "g1_fl", "g1_bus"), add.lines=list(c("Fixed Effects", "No", "Yes", "Yes", "Yes")))
+
+```

@@ -1,0 +1,299 @@
+---
+title: "Thesis_Survival"
+author: "Sanjay Satish"
+date: "3/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(flextable)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(stargazer)
+library(scales)
+library(pROC)
+library(patchwork)
+library(survminer)
+library(ggsci)
+library(survival)
+library(foreign)
+library(kableExtra)
+library(ggplot2)
+library(broom)
+library(GGally)
+library(tidyr)
+library(knitr)
+library(xtable)
+
+students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_Students.tab", header = T, sep = "\t", fill = TRUE)
+comparison_students <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/Comparison_Students.tab", header = T, sep = "\t", fill = TRUE)
+schools_spss <- read.spss("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/Project STAR/STAR_K-3_Schools.sav", to.data.frame=TRUE)
+schools <- read.table("/Users/Sanscubed/Desktop/Thesis/Thesis_data/STAR_Archive/STAR_K-3_Schools.tab", header = T, sep = "\t", fill = TRUE)
+# Converting test scores to numeric types
+students$g1tmathss <- as.numeric(students$g1tmathss)
+students$g1treadss <- as.numeric(students$g1treadss)
+students$g1tlistss <- as.numeric(students$g1tlistss)
+students$g1wordskillss <- as.numeric(students$g1wordskillss)
+
+students$gktmathss <- as.numeric(students$gktmathss)
+students$gktreadss <- as.numeric(students$gktreadss)
+students$gktlistss <- as.numeric(students$gktlistss)
+students$gkwordskillss <- as.numeric(students$gkwordskillss)
+
+students$g2tmathss <- as.numeric(students$g2tmathss)
+students$g3tmathss <- as.numeric(students$g3tmathss)
+
+```
+
+# Survival Analysis 
+
+## Data Wrangling:
+
+```{r}
+students <- students %>%
+  rename(flagsgk = var6, flagsg1 = var7, flagsg2 = var8, flagsg3 = var9) 
+
+students_survival <- students %>%
+  filter(yearsstar != 0, gkschid != 128068 | gkschid != 180344 | gkschid != 205489 | gkschid != 216536 | gkschid != 244818)
+```
+
+### Data for Kindergarten Entry Wave
+
+```{r}
+survival_k_entry <- students %>%
+  filter(flagsgk == 1) %>%
+  mutate(did_leave = case_when(yearsstar == 4 ~ 0, yearsstar != 4 ~ 1), when_first_leave = case_when(flagsg1 == 1 & flagsg2 == 1 & flagsg3 == 1 ~ 0,flagsg1 == 0 ~ 1, flagsg2 == 0 & flagsg1 == 1 ~ 2, flagsg1 == 1 & flagsg2 == 1 & flagsg3 == 0 ~ 3)) %>%
+  mutate(years_until_first_leave = case_when(when_first_leave == 0 ~ 4, when_first_leave == 1 ~ 1, when_first_leave == 2 ~ 2, when_first_leave == 3 ~ 3))
+
+```
+
+## Kaplan-Meier Plot (Only on kids in kindergarten entry wave)
+
+### Income (Based on if they're in Free Lunch upon entry)
+
+```{r}
+# Using Mine 
+fit_ct <- survfit(Surv(years_until_first_leave, did_leave) ~ gkfreelunch, data = survival_k_entry)
+
+income_plot <- ggsurvplot(fit_ct, data = survival_k_entry, pval = TRUE, title = "Survival Probabilities by Free Lunch Status in Kindergarten", subtitle = "Among Kindergarten Entry Cohort", risk.table = TRUE,
+ tables.height = 0.2, risk.table.title = "Number at risk:",
+ tables.theme = theme_cleantable(),
+           xlab = "Years in Project STAR", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = T,legend.labs = c("Free Lunch", "Non-Free Lunch"), palette = "nejm", ggtheme = theme_pubr())
+
+ggsave("Survival_Income.pdf", plot = ggarrange(income_plot$plot, income_plot$table, nrow=2, ncol=1, heights=c(3,1)), path = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/")
+```
+
+### Ability (Based on Kindergarten Quartile in Math & Reading Combined)
+
+```{r}
+survival_k_entry <- survival_k_entry %>%
+  mutate(total_math_reading_k = gktmathss + gktreadss + gktlistss + gkwordskillss) %>%
+  mutate(gk_ability_quartile = ntile(total_math_reading_k, 100)) %>%
+  mutate(gk_ability_category = case_when(gk_ability_quartile <= 25 ~ 1, gk_ability_quartile > 25 & gk_ability_quartile < 75 ~ 2, gk_ability_quartile >= 75 ~ 3))
+
+fit_ct <- survfit(Surv(years_until_first_leave, did_leave) ~ gk_ability_category, data = survival_k_entry)
+
+ability_plot <- ggsurvplot(fit_ct, data = survival_k_entry, title = "Survival Probabilities by Kindergarten Test Scores", subtitle = "Among Kindergarten Entry Cohort",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = T,legend.labs = c("25th Percentile or Below", "Between 25th-75th Percentiles", "75th+ Percentile"), risk.table = TRUE,
+ tables.height = 0.5, risk.table.title = "Number at risk:",
+ tables.theme = theme_cleantable(), palette = "nejm", ggtheme = theme_pubr(), pval = TRUE)
+
+ggsave("Survival_Ability.pdf", plot = ggarrange(ability_plot$plot, ability_plot$table, nrow=2, ncol=1, heights=c(3,1)), path = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/")
+```
+
+### Kindergarten Class Type 
+
+```{r}
+# Using Mine 
+fit_ct <- survfit(Surv(years_until_first_leave, did_leave) ~ gkclasstype, data = survival_k_entry)
+
+classtype_plot <- ggsurvplot(fit_ct, data = survival_k_entry, title = "Survival Probabilities by Kindergarten Class Type", subtitle = "Among Kindergarten Entry Cohort",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = T,legend.labs = c("Small", "Regular", "Aide"), risk.table = TRUE,
+ tables.height = 0.5, risk.table.title = "Number at risk:",
+ tables.theme = theme_cleantable(), palette = "nejm", ggtheme = theme_pubr(), pval = TRUE)
+
+ggsave("Survival_ClassType.pdf", plot = ggarrange(classtype_plot$plot, classtype_plot$table, nrow=2, ncol=1, heights=c(3,1)), path = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/")
+```
+
+### Kindergarten School Rurality 
+
+```{r}
+fit_ct <- survfit(Surv(years_until_first_leave, did_leave) ~ gksurban, data = survival_k_entry)
+
+schoolurb_plot <- ggsurvplot(fit_ct, data = survival_k_entry, title = "Survival Probabilities by Kindergarten School Urbanicity", subtitle = "Among Kindergarten Entry Cohort",
+           xlab = "Years in Expiriment", ylab = "Estimated Survival Probability",
+           conf.int = T, censor = T,legend.labs = c("Inner City", "Suburban", "Rural", "Urban"), risk.table = TRUE,
+ tables.height = 0.5, risk.table.title = "Number at risk:",
+ tables.theme = theme_cleantable(), palette = "nejm", ggtheme = theme_pubr(), pval = TRUE)
+
+ggsave("Survival_SchoolType.pdf", plot = ggarrange(schoolurb_plot$plot, schoolurb_plot$table, nrow=2, ncol=1, heights=c(3,1)), path = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/")
+```
+
+## Survival Model for those in Kindergarten Entry Wave
+
+```{r}
+# -	Vars of interest: 
+# switched classes (disaggregate into stayed same, switched from regular to small, switched from small to larger), 
+#
+# -	Controls: 
+# kindergarten school grade range, exit school grade range, if the school left the experiment, percent students receiving free/reduced lunch in K, percent students bused in K 
+
+survival_k_entry <- survival_k_entry %>%
+  mutate(switched_schools = case_when(when_first_leave == 0 ~ gkschid!=g3schid, when_first_leave == 1 ~ FALSE, when_first_leave == 2 ~ gkschid!=g1schid, when_first_leave == 3 ~ gkschid!=g2schid), switched_classes = case_when(when_first_leave == 0 ~ gkclasstype!=g3classtype, when_first_leave == 1 ~ FALSE, when_first_leave == 2 ~ gkclasstype!=g1classtype, when_first_leave == 3 ~ gkclasstype!=g1classtype))
+
+schools_k <- schools %>%
+  select(schid, var2, var3, var9, var10) %>%
+  rename(gkschid = "schid", grdrange = "var2", flag_sk = "var3", gk_fl = "var9", gk_bus = "var10") %>%
+  filter(flag_sk == 1) 
+  
+regression_surv_k <- merge(survival_k_entry,schools_k,by="gkschid")
+
+
+# Model of attrition between k to 1st grade, note teacher gender not controlled for as there are only female teachers in gk
+weibull_k_entry <- survreg(Surv(years_until_first_leave, did_leave)  ~ as.factor(gkfreelunch) + as.factor(gksurban)  + as.factor(gkclasstype)  + as.factor(gk_ability_category) + as.factor(gender) + as.factor(race) + gktyears + as.factor(gkspeced) + as.factor(gkspecin) + gkabsent + as.factor(grdrange) + gk_fl + gk_bus,  
+                    data=regression_surv_k, dist = "weibull")
+
+#weibull_k_entry$coefficients <- exp(weibull_k_entry$coefficients)
+#Model summary
+# summary(weibull_k_entry)
+
+# Model for those who were able to switch classes/schools
+
+regression_surv_k2 <- regression_surv_k %>%
+  filter(when_first_leave != 1)
+
+weibull_k_entry_nonfirst <- survreg(Surv(years_until_first_leave, did_leave)  ~ as.factor(gkfreelunch) + as.factor(gksurban) + as.factor(switched_schools) + as.factor(gkclasstype) + as.factor(switched_classes) + as.factor(gk_ability_category) + as.factor(gender) + as.factor(race) + gktyears + as.factor(gkspeced) + as.factor(gkspecin) + gkabsent + as.factor(grdrange) + gk_fl + gk_bus,  
+                    data=regression_surv_k2, dist = "weibull")
+
+#summary(weibull_k_entry_nonfirst)
+```
+
+
+### Regression Table
+```{r fig:model, fig.cap="\\label{fig:model}", fig.align = 'center'}
+#Knitting Model summary into a readable table for view in PDF format
+
+complete_table <- stargazer(weibull_k_entry, weibull_k_entry_nonfirst, title="Coefficient-Level Estimates for AFT Model of Attrition for Kindergarten Entry Cohort", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", covariate.labels = c("Non-Free Lunch", "School Suburban", "School Rural", "School Urban", "Switched Schools", "Regular Class", "Regular Class w/ Aide", "Switched Class Types", "Kindergarten Test Score Between 25th-75th Percentile", "Kindergarten Test Score Above 75th Percentile", "Student Gender: Female", "Student Race: Black", "Student Race: Asian", "Student Race: Hispanic", "Student Race: Native American", "Student Race: Other", "Teacher Experience (yrs.)", "Not Special Education", "Not Pulled Out for Special Instruction", "Days Absent", "Kindergarten School K-4", "Kindergarten School K-5", "Kindergarten School K-6", "Kindergarten School K-7", "Kindergarten School K-8", "Kindergarten School K-9", "Percent Kids in Kindergarten School Recieving Free Lunch", "% Kids bused in Kindergarten School"))
+
+# Compressed Table 
+
+compressed_table <- stargazer(weibull_k_entry, weibull_k_entry_nonfirst, title="Coefficient-Level Estimates for AFT Model of Attrition for Kindergarten Entry Cohort", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", omit = c("gender", "race", "gktyears", "gkabsent", "grdrange", "gk_fl", "gk_bus"), add.lines=list(c("Controls", "  Yes", "  Yes")), covariate.labels = c("Non-Free Lunch", "School Suburban", "School Rural", "School Urban", "Switched Schools", "Regular Class", "Regular Class w/ Aide", "Switched Class Types", "Kindergarten Test Score Between 25th-75th Percentile", "Kindergarten Test Score Above 75th Percentile", "Not Special Education", "Not Pulled Out for Special Instruction"))
+
+```
+
+### Diagnostics: 
+
+```{r}
+pdf(file = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/AFT_Diagnostic_1.pdf")
+
+par(mfrow = c(1,2), cex = .6, mai=c(0.5,0.5,0.5,0.5))
+resids <- (log(regression_surv_k$years_until_first_leave) - weibull_k_entry$linear.predictors) / (weibull_k_entry$scale)
+
+rmod <- survfit(Surv(resids, did_leave) ~ 1, data = regression_surv_k)
+
+a <- plot(rmod, main = "Distributional Convergence - AFT Model (1)", xlab = "Residuals for AFT Model of Attrition for Kindergarten Entry Cohort", ylab = "Survival Probability")
+exp.x <- seq(min(resids), max(resids), length = 100)
+exp.y <- plogis(exp.x, lower.tail = F) # F(t)
+lines(exp.x, exp.y, col = "red", lwd = 2)
+
+resids <- (log(regression_surv_k2$years_until_first_leave) - weibull_k_entry_nonfirst$linear.predictors) / (weibull_k_entry_nonfirst$scale)
+
+rmod <- survfit(Surv(resids, did_leave) ~ 1, data = regression_surv_k2)
+b <- plot(rmod, main = "Distributional Convergence - AFT Model (2)", xlab = "", ylab = "Survival Probability")
+mtext("Residuals for AFT Model of Attrition for Kindergarten Entry Cohort, \n Excluding Students who Left Before 1st Grade", side=1, line=3, cex = .6)
+exp.x <- seq(min(resids), max(resids), length = 100)
+exp.y <- plogis(exp.x, lower.tail = F) # F(t)
+lines(exp.x, exp.y, col = "red", lwd = 2)
+
+dev.off()
+```
+
+## Survival Model for those in 1st grade entry wave
+
+```{r}
+survival_1_entry <- students %>%
+  filter(flagsgk == 0 && flagsg1 == 1) %>%
+  mutate(did_leave = case_when(yearsstar == 3 ~ 0, yearsstar != 3 ~ 1), when_first_leave = case_when(flagsg2 == 1 & flagsg3 == 1 ~ 0, flagsg2 == 0 ~ 1, flagsg2 == 1 & flagsg3 == 0 ~ 2)) %>%
+  mutate(years_until_first_leave = case_when(when_first_leave == 0 ~ 3, when_first_leave == 1 ~ 1, when_first_leave == 2 ~ 2)) %>%
+  mutate(total_math_reading_1 = g1tmathss + g1treadss + g1tlistss + g1wordskillss) %>%
+  mutate(g1_ability_quartile = ntile(total_math_reading_1, 100)) %>%
+  mutate(g1_ability_category = case_when(g1_ability_quartile <= 25 ~ 1, g1_ability_quartile > 25 & g1_ability_quartile < 75 ~ 2, g1_ability_quartile >= 75 ~ 3)) %>%
+  mutate(switched_schools = case_when(when_first_leave == 0 ~ g1schid!=g3schid, when_first_leave == 1 ~ FALSE, when_first_leave == 2 ~ g1schid!=g2schid), switched_classes = case_when(when_first_leave == 0 ~ g1classtype!=g3classtype, when_first_leave == 1 ~ FALSE, when_first_leave == 2 ~ g1classtype!=g2classtype))
+
+schools_1 <- schools %>%
+  select(schid, var2, var4, var21, var22) %>%
+  rename(g1schid = "schid", grdrange = "var2", flag_s1 = "var4", g1_fl = "var21", g1_bus = "var22") %>%
+  filter(flag_s1 == 1) 
+  
+regression_surv_1 <- merge(survival_1_entry,schools_1,by="g1schid")
+
+# Model for 1st grade entry cohort
+weibull_1_entry <- survreg(Surv(years_until_first_leave, did_leave)  ~ as.factor(g1freelunch) + as.factor(g1surban)  + as.factor(g1classtype)  + as.factor(g1_ability_category) + as.factor(gender) + as.factor(race) + g1tyears + as.factor(g1speced) + as.factor(g1specin) + g1absent + as.factor(grdrange) + g1_fl + g1_bus,  
+                    data=regression_surv_1, dist = "weibull")
+
+# Model for those who stayed past 1st grade
+regression_surv_f2 <- regression_surv_1 %>%
+  filter(when_first_leave != 1)
+
+weibull_1_entry2 <- survreg(Surv(years_until_first_leave, did_leave)  ~ as.factor(g1freelunch) + as.factor(g1surban) + as.factor(switched_schools) + as.factor(g1classtype) + as.factor(switched_classes) + as.factor(g1_ability_category) + as.factor(gender) + as.factor(race) + g1tyears + as.factor(g1speced) + as.factor(g1specin) + g1absent + as.factor(grdrange) + g1_fl + g1_bus,  
+                    data=regression_surv_f2, dist = "weibull")
+
+
+
+#weibull_k_entry$coefficients <- exp(weibull_k_entry$coefficients)
+#Model summary
+#summary(weibull_1_entry)
+
+
+#Model summary
+#summary(weibull_1_entry2)
+```
+
+### Regression Table
+```{r fig:model, fig.cap="\\label{fig:model}", fig.align = 'center'}
+#Knitting Model summary into a readable table for view in PDF format
+
+complete_table_first <- stargazer(weibull_1_entry, weibull_1_entry2, title="Coefficient-Level Estimates for AFT Model of Attrition for 1st Grade Entry Cohort", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", covariate.labels = c("Non-Free Lunch", "School Suburban", "School Rural", "School Urban", "Switched Schools", "Regular Class", "Regular Class w/ Aide", "Switched Class Types", "1st Grade Test Score Between 25th-75th Percentile", "1st Grade Test Score Above 75th Percentile", "Student Gender: Female", "Student Race: Black", "Student Race: Asian", "Student Race: Hispanic", "Student Race: Native American", "Student Race: Other", "Teacher Experience (yrs.)", "Not Special Education", "Not Pulled Out for Special Instruction", "Days Absent", "1st Grade School K-4", "1st Grade School K-5", "1st Grade School K-6", "1st Grade School K-7", "1st Grade School K-8", "1st Grade School K-9", "Percent Kids in 1st Grade School Recieving Free Lunch", "% Kids bused in 1st Grade School"))
+
+# Compressed Table w/ Exponentiated coefficients
+
+compressed_table_first <- stargazer(weibull_1_entry, weibull_1_entry2, title="Coefficient-Level Estimates for AFT Model of Attrition for 1st Grade Entry Cohort", align=TRUE, type = 'latex', header = FALSE, single.row = FALSE, column.sep.width = "3pt", font.size = "small", omit.stat=c("f"), model.names = FALSE, notes.align = "l", omit = c("gender", "race", "g1tyears", "g1absent", "grdrange", "g1_fl", "g1_bus"), add.lines=list(c("Controls", "  Yes", "  Yes")), covariate.labels = c("Non-Free Lunch", "School Suburban", "School Rural", "School Urban", "Switched Schools", "Regular Class", "Regular Class w/ Aide", "Switched Class Types", "1st Grade Test Score Between 25th-75th Percentile", "1st Grade Test Score Above 75th Percentile", "Not Special Education", "Not Pulled Out for Special Instruction"))
+
+```
+
+### Diagnostics: 
+
+```{r}
+
+pdf(file = "/Users/Sanscubed/Desktop/Thesis/Thesis_figures/AFT_Diagnostic_2.pdf")
+
+par(mfrow = c(1,2), cex = .6, mai=c(0.5,0.5,0.5,0.5))
+resids <- (log(regression_surv_1$years_until_first_leave) - weibull_1_entry$linear.predictors) / (weibull_1_entry$scale)
+
+rmod <- survfit(Surv(resids, did_leave) ~ 1, data = regression_surv_1)
+
+a <- plot(rmod, main = "Distributional Convergence - AFT Model (1)", xlab = "Residuals for AFT Model of Attrition for 1st Grade Entry Cohort", ylab = "Survival Probability")
+exp.x <- seq(min(resids), max(resids), length = 100)
+exp.y <- plogis(exp.x, lower.tail = F) # F(t)
+lines(exp.x, exp.y, col = "red", lwd = 2)
+
+resids <- (log(regression_surv_f2$years_until_first_leave) - weibull_1_entry2$linear.predictors) / (weibull_1_entry2$scale)
+
+rmod <- survfit(Surv(resids, did_leave) ~ 1, data = regression_surv_f2)
+b <- plot(rmod, main = "Distributional Convergence - AFT Model (2)", xlab = "", ylab = "Survival Probability")
+mtext("Residuals for AFT Model of Attrition for 1st Grade Entry Cohort, \n Excluding Students who Left Before 2nd Grade", side=1, line=3, cex = .6)
+exp.x <- seq(min(resids), max(resids), length = 100)
+exp.y <- plogis(exp.x, lower.tail = F) # F(t)
+lines(exp.x, exp.y, col = "red", lwd = 2)
+
+dev.off()
+
+```
+
+
