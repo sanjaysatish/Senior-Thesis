@@ -1,0 +1,1120 @@
+---------------------------------------------------------------------------------------------------------
+       log:  C:\Users\Chris\Desktop\tennessee star\graphs020111.log
+  log type:  text
+ opened on:   3 Feb 2011, 21:58:33
+
+. set more off
+
+. clear
+
+. set mem 50m
+
+Current memory allocation
+
+                    current                                 memory usage
+    settable          value     description                 (1M = 1024k)
+    --------------------------------------------------------------------
+    set maxvar         5000     max. variables allowed           1.909M
+    set memory           50M    max. data space                 50.000M
+    set matsize         400     max. RHS vars in models          1.254M
+                                                            -----------
+                                                                53.163M
+
+. 
+. use star_cleaned
+
+. 
+. 
+.         * initial class type organized by "wave"
+. 
+.         gen g0small = 0
+
+.         replace g0small = 1 if gkclasst==1
+(1900 real changes made)
+
+.         gen g0classt = gkclasst
+(5291 missing values generated)
+
+. 
+.         gen g1small = 0
+
+.         replace g1small = 1 if g1classt==1
+(1925 real changes made)
+
+. 
+.         gen g2small = 0
+
+.         replace g2small = 1 if g2classt==1
+(2016 real changes made)
+
+. 
+.         gen g3small = 0
+
+.         replace g3small = 1 if g3classt==1      
+(2174 real changes made)
+
+. 
+.         gen g0aide = 0
+
+.         replace g0aide = 1 if gkclasst==3
+(2231 real changes made)
+
+. 
+.         gen g1aide = 0
+
+.         replace g1aide = 1 if g1classt==3
+(2320 real changes made)
+
+. 
+.         gen g2aide = 0
+
+.         replace g2aide = 1 if g2classt==3
+(2495 real changes made)
+
+. 
+.         gen g3aide = 0
+
+.         replace g3aide = 1 if g3classt==3
+(2543 real changes made)
+
+. 
+.         * next, determine whether school and
+.         * class type are the same by semester
+.         * organize semesters by s1 to s7
+. 
+.         gen g1_persist = 0 if wave==0
+(5291 missing values generated)
+
+.         replace g1_persist = 1 if flagsg1==1 & gkschid==g1schid & g0small==g1small & wave==0
+(4084 real changes made)
+
+. 
+.         gen g2_persist = 0 if wave==0 | wave==1
+(2977 missing values generated)
+
+.         replace g2_persist = 1 if flagsg2==1 & gkschid==g2schid & g0small==g2small & wave==0
+(3170 real changes made)
+
+.         replace g2_persist = 1 if flagsg2==1 & g1schid==g2schid & g1small==g2small & wave==1
+(1374 real changes made)
+
+. 
+.         gen g3_persist = 0 if wave==0 | wave==1 | wave==2
+(1298 missing values generated)
+
+.         replace g3_persist = 1 if flagsg3==1 & gkschid==g3schid & g0small==g3small & wave==0 
+(2654 real changes made)
+
+.         replace g3_persist = 1 if flagsg3==1 & g1schid==g3schid & g1small==g3small & wave==1
+(1023 real changes made)
+
+.         replace g3_persist = 1 if flagsg3==1 & g2schid==g3schid & g2small==g3small & wave==2
+(1001 real changes made)
+
+. 
+.         forvalues w = 0/2 {
+  2.                 forvalues t = 1/3 {
+  3.                         forvalues g = 1/3 {
+  4.                                 disp "WAVE `w', CLASS TYPE `t', GRADE `g'"
+  5.                                 sum g`g'_persist if wave==`w' & g`w'classt==`t'
+  6.                                 }
+  7.                         }
+  8.                 }
+WAVE 0, CLASS TYPE 1, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |      1900    .6736842    .4689878          0          1
+WAVE 0, CLASS TYPE 1, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |      1900    .5484211    .4977809          0          1
+WAVE 0, CLASS TYPE 1, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |      1900    .4615789    .4986529          0          1
+WAVE 0, CLASS TYPE 2, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |      2194    .6212397    .4851889          0          1
+WAVE 0, CLASS TYPE 2, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |      2194    .4881495    .4999735          0          1
+WAVE 0, CLASS TYPE 2, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |      2194    .4088423    .4917321          0          1
+WAVE 0, CLASS TYPE 3, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |      2231    .6458987    .4783473          0          1
+WAVE 0, CLASS TYPE 3, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |      2231    .4737786    .4994239          0          1
+WAVE 0, CLASS TYPE 3, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |      2231     .394442    .4888401          0          1
+WAVE 1, CLASS TYPE 1, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 1, CLASS TYPE 1, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |       385    .5584416     .497219          0          1
+WAVE 1, CLASS TYPE 1, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |       385    .4311688     .495884          0          1
+WAVE 1, CLASS TYPE 2, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 1, CLASS TYPE 2, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |      1026    .5672515    .4956982          0          1
+WAVE 1, CLASS TYPE 2, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |      1026    .3898635     .487957          0          1
+WAVE 1, CLASS TYPE 3, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 1, CLASS TYPE 3, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |       903    .6389812    .4805622          0          1
+WAVE 1, CLASS TYPE 3, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |       903    .5060908      .50024          0          1
+WAVE 2, CLASS TYPE 1, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 2, CLASS TYPE 1, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |         0
+WAVE 2, CLASS TYPE 1, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |       366     .579235    .4943577          0          1
+WAVE 2, CLASS TYPE 2, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 2, CLASS TYPE 2, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |         0
+WAVE 2, CLASS TYPE 2, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |       654     .588685    .4924488          0          1
+WAVE 2, CLASS TYPE 3, GRADE 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g1_persist |         0
+WAVE 2, CLASS TYPE 3, GRADE 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g2_persist |         0
+WAVE 2, CLASS TYPE 3, GRADE 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+  g3_persist |       659    .6130501     .487422          0          1
+
+. 
+. * FIGURE 3: PIE CHARTS DESCRIBING WHERE PEOPLE END UP
+. * - THREE PANELS FOR EACH SAMPLE WAVE
+. * - WITHIN EACH WAVE, ONE PANEL FOR EACH CLASS TYPE
+. 
+. * PANELS K-A, K-B, and K-C: STUDENTS WHO ENTERED IN KINDERGARTEN
+. 
+.         * depending on kindergarten class type, let's predict your situation in 3rd grade
+. 
+.         * restrict sample to those in initial kindergarten cohort.
+. 
+. use star_cleaned, clear
+
+.                 
+.         keep if wave==0
+(5291 observations deleted)
+
+.         
+.         * generate gksmall and g3small
+.         
+.         gen gksmall = 0
+
+.         replace gksmall = 1 if gkclasst==1
+(1900 real changes made)
+
+.         gen g3small = 0
+
+.         replace g3small = 1 if g3classt==1
+(1249 real changes made)
+
+. 
+.         gen g0classt = gkclasst
+
+.         gen g0small = gksmall
+
+.         
+.         * deal with the two observations not in TCAP.
+.         * one is still in STAR, and the other we'll assume
+.         * left the system.
+. 
+.         replace public90 = 1 if public90==. & flagsg3==1
+(1 real change made)
+
+.         replace public90 = 0 if public90==.
+(1 real change made)
+
+.         
+.         * who left the system?
+.         
+.         gen leftsystem = 0
+
+.         replace leftsystem = 1 if public90==0 & flagsg3==0 & gkstarschool3==1
+(1525 real changes made)
+
+.         
+.         * who left star but remained in the public school system?
+.         * exclude those whose schools left the program.
+.         
+.         gen nonprogramschool = 0
+
+.         replace nonprogramschool = 1 if public90==1 & gkstarschool3==1 & flagsg3==0
+(1243 real changes made)
+
+. 
+.         * whose schools left the program?
+.         
+.         gen schoolleft = 0
+
+.         replace schoolleft = 1 if gkstarschool3==0
+(329 real changes made)
+
+.         
+.         * who changed schools within project star?
+.         
+.         gen otherstarschool = 0
+
+.         replace otherstarschool = 1 if flagsg3==1 & gkschid~=g3schid & gkstarschool3==1
+(146 real changes made)
+
+.         
+.         * who changed class type within school?
+.         
+.         gen within_change = 0
+
+.         replace within_change = 1 if flagsg3==1 & gkschid==g3schid & gksmall~=g3small
+(428 real changes made)
+
+.         
+.         * who's still in program
+.         
+.         gen still_in_program = 0
+
+.         replace still_in_program = 1 if flagsg3==1 & gkschid==g3schid & gksmall==g3small & gkstarschool
+> 3==1
+(2654 real changes made)
+
+.         
+.         * double-check variables created correctly
+. 
+.         count if schoolleft & otherstarschool
+    0
+
+.         count if schoolleft & nonprogramschool
+    0
+
+.         count if schoolleft & leftsystem
+    0
+
+.         count if schoolleft & within_change
+    0
+
+.         count if schoolleft & still_in_program
+    0
+
+. 
+.         count if otherstarschool & nonprogramschool
+    0
+
+.         count if otherstarschool & leftsystem
+    0
+
+.         count if otherstarschool & within_change
+    0
+
+.         count if otherstarschool & still_in_program
+    0
+
+. 
+.         count if nonprogramschool & leftsystem
+    0
+
+.         count if nonprogramschool & within_change
+    0
+
+.         count if nonprogramschool & still_in_program
+    0
+
+. 
+.         count if leftsystem & within_change
+    0
+
+.         count if leftsystem & still_in_program
+    0
+
+. 
+.         count if within_change & still_in_program
+    0
+
+. 
+.         count if ~schoolleft & ~otherstarschool & ~nonprogramschool & ~leftsystem & ~within_change & ~s
+> till_in_program
+    0
+
+. 
+.         * ok, let's make the pie graph
+. 
+.         tab gkclasst schoolleft
+
+      classroom type |      schoolleft
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,806         94 |     1,900 
+       regular class |     2,079        115 |     2,194 
+regular + aide class |     2,111        120 |     2,231 
+---------------------+----------------------+----------
+               Total |     5,996        329 |     6,325 
+
+
+.         tab gkclasst otherstarschool
+
+      classroom type |    otherstarschool
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,863         37 |     1,900 
+       regular class |     2,150         44 |     2,194 
+regular + aide class |     2,166         65 |     2,231 
+---------------------+----------------------+----------
+               Total |     6,179        146 |     6,325 
+
+
+.         tab gkclasst nonprogramschool
+
+      classroom type |   nonprogramschool
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,523        377 |     1,900 
+       regular class |     1,768        426 |     2,194 
+regular + aide class |     1,791        440 |     2,231 
+---------------------+----------------------+----------
+               Total |     5,082      1,243 |     6,325 
+
+
+.         tab gkclasst leftsystem
+
+      classroom type |      leftsystem
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,481        419 |     1,900 
+       regular class |     1,651        543 |     2,194 
+regular + aide class |     1,668        563 |     2,231 
+---------------------+----------------------+----------
+               Total |     4,800      1,525 |     6,325 
+
+
+.         tab gkclasst within_change
+
+      classroom type |     within_change
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,804         96 |     1,900 
+       regular class |     2,025        169 |     2,194 
+regular + aide class |     2,068        163 |     2,231 
+---------------------+----------------------+----------
+               Total |     5,897        428 |     6,325 
+
+
+.         tab gkclasst still_in_program
+
+      classroom type |   still_in_program
+        kindergarten |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |     1,023        877 |     1,900 
+       regular class |     1,297        897 |     2,194 
+regular + aide class |     1,351        880 |     2,231 
+---------------------+----------------------+----------
+               Total |     3,671      2,654 |     6,325 
+
+
+. 
+. * PANELS 1-A, 1-B, and 1-C: STUDENTS WHO ENTERED IN FIRST GRADE
+. 
+. * now let's do the same comparisons for those who entered in first grade
+. 
+. use star_cleaned, clear
+
+.         
+.         * restrict sample to those in first grade cohort.
+. 
+.         keep if wave==1
+(9302 observations deleted)
+
+.         
+.         * create g1small and g3small
+.         
+.         gen g1small = 0
+
+.         replace g1small = 1 if g1classt==1
+(385 real changes made)
+
+.         gen g3small = 0
+
+.         replace g3small = 1 if g3classt==1
+(292 real changes made)
+
+. 
+.         * deal with the two observations not in TCAP.
+.         * one is still in STAR, and the other we'll assume
+.         * left the system.
+. 
+.         replace public90 = 1 if public90==. & flagsg3==1
+(0 real changes made)
+
+.         replace public90 = 0 if public90==.
+(0 real changes made)
+
+.         
+.         * who left the system?
+.         
+.         gen leftsystem = 0
+
+.         replace leftsystem = 1 if public90==0 & flagsg3==0 & g1starschool3==1
+(651 real changes made)
+
+.         
+.         * who left star but remained in the public school system?
+.         * exclude those whose schools left the program.
+.         
+.         gen nonprogramschool = 0
+
+.         replace nonprogramschool = 1 if public90==1 & g1starschool3==1 & flagsg3==0
+(446 real changes made)
+
+. 
+.         * whose schools left the program?
+.         
+.         gen schoolleft = 0
+
+.         replace schoolleft = 1 if g1starschool3==0
+(23 real changes made)
+
+.         
+.         * who changed schools within project star?
+.         
+.         gen otherstarschool = 0
+
+.         replace otherstarschool = 1 if flagsg3==1 & g1schid~=g3schid & g1starschool3==1
+(58 real changes made)
+
+.         
+.         * who changed class type within school?
+.         
+.         gen within_change = 0
+
+.         replace within_change = 1 if flagsg3==1 & g1schid==g3schid & g1small~=g3small
+(113 real changes made)
+
+.         
+.         * who's still in program
+.         
+.         gen still_in_program = 0
+
+.         replace still_in_program = 1 if flagsg3==1 & g1schid==g3schid & g1small==g3small & g1starschool
+> 3==1
+(1023 real changes made)
+
+.         
+.         * double-check variables created correctly
+. 
+.         count if schoolleft & otherstarschool
+    0
+
+.         count if schoolleft & nonprogramschool
+    0
+
+.         count if schoolleft & leftsystem
+    0
+
+.         count if schoolleft & within_change
+    0
+
+.         count if schoolleft & still_in_program
+    0
+
+. 
+.         count if otherstarschool & nonprogramschool
+    0
+
+.         count if otherstarschool & leftsystem
+    0
+
+.         count if otherstarschool & within_change
+    0
+
+.         count if otherstarschool & still_in_program
+    0
+
+. 
+.         count if nonprogramschool & leftsystem
+    0
+
+.         count if nonprogramschool & within_change
+    0
+
+.         count if nonprogramschool & still_in_program
+    0
+
+. 
+.         count if leftsystem & within_change
+    0
+
+.         count if leftsystem & still_in_program
+    0
+
+. 
+.         count if within_change & still_in_program
+    0
+
+. 
+.         count if ~schoolleft & ~otherstarschool & ~nonprogramschool & ~leftsystem & ~within_change & ~s
+> till_in_program
+    0
+
+. 
+.         * ok, let's make the pie graph
+. 
+.         tab g1classt schoolleft
+
+classroom type grade |      schoolleft
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       383          2 |       385 
+       regular class |     1,015         11 |     1,026 
+regular + aide class |       893         10 |       903 
+---------------------+----------------------+----------
+               Total |     2,291         23 |     2,314 
+
+
+.         tab g1classt otherstarschool
+
+classroom type grade |    otherstarschool
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       373         12 |       385 
+       regular class |       998         28 |     1,026 
+regular + aide class |       885         18 |       903 
+---------------------+----------------------+----------
+               Total |     2,256         58 |     2,314 
+
+
+.         tab g1classt nonprogramschool
+
+classroom type grade |   nonprogramschool
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       319         66 |       385 
+       regular class |       819        207 |     1,026 
+regular + aide class |       730        173 |       903 
+---------------------+----------------------+----------
+               Total |     1,868        446 |     2,314 
+
+
+.         tab g1classt leftsystem
+
+classroom type grade |      leftsystem
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       255        130 |       385 
+       regular class |       732        294 |     1,026 
+regular + aide class |       676        227 |       903 
+---------------------+----------------------+----------
+               Total |     1,663        651 |     2,314 
+
+
+.         tab g1classt within_change
+
+classroom type grade |     within_change
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       376          9 |       385 
+       regular class |       940         86 |     1,026 
+regular + aide class |       885         18 |       903 
+---------------------+----------------------+----------
+               Total |     2,201        113 |     2,314 
+
+
+.         tab g1classt still_in_program
+
+classroom type grade |   still_in_program
+                   1 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       219        166 |       385 
+       regular class |       626        400 |     1,026 
+regular + aide class |       446        457 |       903 
+---------------------+----------------------+----------
+               Total |     1,291      1,023 |     2,314 
+
+
+. 
+. * PANELS 2-A, 2-B, and 2-C: STUDENTS WHO ENTERED IN SECOND GRADE
+. 
+. * now let's do the same comparisons for those who entered in srecond grade
+. 
+. use star_cleaned, clear
+
+.         
+.         * restrict sample to those in second grade cohort.
+. 
+.         keep if wave==2
+(9937 observations deleted)
+
+. 
+.         * make g2small and g3small
+.         
+.         gen g2small = 0
+
+.         replace g2small = 1 if g2classt==1
+(366 real changes made)
+
+.         gen g3small = 0
+
+.         replace g3small = 1 if g3classt==1
+(260 real changes made)
+
+. 
+.         * deal with the two observations not in TCAP.
+.         * one is still in STAR, and the other we'll assume
+.         * left the system.
+. 
+.         replace public90 = 1 if public90==. & flagsg3==1
+(0 real changes made)
+
+.         replace public90 = 0 if public90==.
+(0 real changes made)
+
+.         
+.         * who left the system?
+.         
+.         gen leftsystem = 0
+
+.         replace leftsystem = 1 if public90==0 & flagsg3==0 & g2starschool3==1
+(383 real changes made)
+
+.         
+.         * who left star but remained in the public school system?
+.         * exclude those whose schools left the program.
+.         
+.         gen nonprogramschool = 0
+
+.         replace nonprogramschool = 1 if public90==1 & g2starschool3==1 & flagsg3==0
+(202 real changes made)
+
+. 
+.         * whose schools left the program?
+.         
+.         gen schoolleft = 0
+
+.         replace schoolleft = 1 if g2starschool3==0
+(0 real changes made)
+
+.         
+.         * who changed schools within project star?
+.         
+.         gen otherstarschool = 0
+
+.         replace otherstarschool = 1 if flagsg3==1 & g2schid~=g3schid & g2starschool3==1
+(44 real changes made)
+
+.         
+.         * who changed class type within school?
+.         
+.         gen within_change = 0
+
+.         replace within_change = 1 if flagsg3==1 & g2schid==g3schid & g2small~=g3small
+(49 real changes made)
+
+.         
+.         * who's still in program
+.         
+.         gen still_in_program = 0
+
+.         replace still_in_program = 1 if flagsg3==1 & g2schid==g3schid & g2small==g3small & g2starschool
+> 3==1
+(1001 real changes made)
+
+.         
+.         * double-check variables created correctly
+. 
+.         count if schoolleft & otherstarschool
+    0
+
+.         count if schoolleft & nonprogramschool
+    0
+
+.         count if schoolleft & leftsystem
+    0
+
+.         count if schoolleft & within_change
+    0
+
+.         count if schoolleft & still_in_program
+    0
+
+. 
+.         count if otherstarschool & nonprogramschool
+    0
+
+.         count if otherstarschool & leftsystem
+    0
+
+.         count if otherstarschool & within_change
+    0
+
+.         count if otherstarschool & still_in_program
+    0
+
+. 
+.         count if nonprogramschool & leftsystem
+    0
+
+.         count if nonprogramschool & within_change
+    0
+
+.         count if nonprogramschool & still_in_program
+    0
+
+. 
+.         count if leftsystem & within_change
+    0
+
+.         count if leftsystem & still_in_program
+    0
+
+. 
+.         count if within_change & still_in_program
+    0
+
+. 
+.         count if ~schoolleft & ~otherstarschool & ~nonprogramschool & ~leftsystem & ~within_change & ~s
+> till_in_program
+    0
+
+. 
+.         * ok, let's make the pie graph
+. 
+.         tab g2classt schoolleft
+
+classroom type grade | schoolleft
+                   2 |         0 |     Total
+---------------------+-----------+----------
+         small class |       366 |       366 
+       regular class |       654 |       654 
+regular + aide class |       659 |       659 
+---------------------+-----------+----------
+               Total |     1,679 |     1,679 
+
+
+.         tab g2classt otherstarschool
+
+classroom type grade |    otherstarschool
+                   2 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       356         10 |       366 
+       regular class |       638         16 |       654 
+regular + aide class |       641         18 |       659 
+---------------------+----------------------+----------
+               Total |     1,635         44 |     1,679 
+
+
+.         tab g2classt nonprogramschool
+
+classroom type grade |   nonprogramschool
+                   2 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       318         48 |       366 
+       regular class |       577         77 |       654 
+regular + aide class |       582         77 |       659 
+---------------------+----------------------+----------
+               Total |     1,477        202 |     1,679 
+
+
+.         tab g2classt leftsystem
+
+classroom type grade |      leftsystem
+                   2 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       279         87 |       366 
+       regular class |       511        143 |       654 
+regular + aide class |       506        153 |       659 
+---------------------+----------------------+----------
+               Total |     1,296        383 |     1,679 
+
+
+.         tab g2classt within_change
+
+classroom type grade |     within_change
+                   2 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       357          9 |       366 
+       regular class |       621         33 |       654 
+regular + aide class |       652          7 |       659 
+---------------------+----------------------+----------
+               Total |     1,630         49 |     1,679 
+
+
+.         tab g2classt still_in_program
+
+classroom type grade |   still_in_program
+                   2 |         0          1 |     Total
+---------------------+----------------------+----------
+         small class |       154        212 |       366 
+       regular class |       269        385 |       654 
+regular + aide class |       255        404 |       659 
+---------------------+----------------------+----------
+               Total |       678      1,001 |     1,679 
+
+
+. 
+. * FIGURE 4: TRANSITIONS ACROSS CLASS TYPE BY WAVE
+.         
+. use star_cleaned, clear
+
+. 
+.         gen g0classt = gkclasst
+(5291 missing values generated)
+
+.         
+.         * wave 0
+. 
+.         tab gkclasst g3classt if flagsg3==1 & gkschid==g3schid & gkstarschool3==1 & wave==0
+
+      classroom type |      classroom type grade 3
+        kindergarten | small cla  regular c  regular + |     Total
+---------------------+---------------------------------+----------
+         small class |       877         40         56 |       973 
+       regular class |       169        402        495 |     1,066 
+regular + aide class |       163        365        515 |     1,043 
+---------------------+---------------------------------+----------
+               Total |     1,209        807      1,066 |     3,082 
+
+
+. 
+.         * wave 1
+. 
+.         tab g1classt g3classt if flagsg3==1 & g1schid==g3schid & g1starschool3==1 & wave==1
+
+classroom type grade |      classroom type grade 3
+                   1 | small cla  regular c  regular + |     Total
+---------------------+---------------------------------+----------
+         small class |       166          5          4 |       175 
+       regular class |        86        332         68 |       486 
+regular + aide class |        18         34        423 |       475 
+---------------------+---------------------------------+----------
+               Total |       270        371        495 |     1,136 
+
+
+. 
+.         * wave 2
+. 
+.         tab g2classt g3classt if flagsg3==1 & g2schid==g3schid & g2starschool3==1 & wave==2
+
+classroom type grade |      classroom type grade 3
+                   2 | small cla  regular c  regular + |     Total
+---------------------+---------------------------------+----------
+         small class |       212          5          4 |       221 
+       regular class |        33        343         42 |       418 
+regular + aide class |         7         25        379 |       411 
+---------------------+---------------------------------+----------
+               Total |       252        373        425 |     1,050 
+
+
+. 
+. * FIGURE 5: GRADE RETENTION BY WAVE AND CLASS TYPE
+. 
+.         * next, let's focus on grade retention by entry cohort and class type
+. 
+.         gen retained = 0
+
+.         replace retained = 1 if gkrepeat==2 | g1promot==2 | g2promot==2 | g3promot==2
+(1457 real changes made)
+
+. 
+.         * sample means for retained
+. 
+.         gen g0starschool3 = gkstarschool3
+(5290 missing values generated)
+
+.         
+.         forvalues t = 1/3 {
+  2.                 forvalues i = 0/2 {
+  3.                         disp "RETAINED, WAVE == `i'  CLASS TYPE == `t'"
+  4.                         sum retained if wave==`i' & g`i'classt==`t' & g`i'starschool3==1
+  5.                         }
+  6.                 }
+RETAINED, WAVE == 0  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |      1806    .1328904    .3395502          0          1
+RETAINED, WAVE == 1  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |       383     .151436    .3589423          0          1
+RETAINED, WAVE == 2  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |       366     .079235    .2704749          0          1
+RETAINED, WAVE == 0  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |      2079    .1495911     .356756          0          1
+RETAINED, WAVE == 1  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |      1015    .1871921     .390258          0          1
+RETAINED, WAVE == 2  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |       654    .0932722    .2910361          0          1
+RETAINED, WAVE == 0  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |      2111    .1463761    .3535666          0          1
+RETAINED, WAVE == 1  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |       893    .1444569    .3517494          0          1
+RETAINED, WAVE == 2  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+    retained |       659    .0622155      .24173          0          1
+
+. 
+.         gen tlater = 0
+
+.         for N in num 95/97: replace tlater = 1 if publicN==1
+
+->  replace tlater = 1 if public95==1
+(1734 real changes made)
+
+->  replace tlater = 1 if public96==1
+(34 real changes made)
+
+->  replace tlater = 1 if public97==1
+(2 real changes made)
+
+. 
+.         forvalues t = 1/3 {
+  2.                 forvalues i = 0/2 {
+  3.                         disp "tlater, WAVE == `i'  CLASS TYPE == `t'"
+  4.                         sum tlater if wave==`i' & g`i'classt==`t' & g`i'starschool3==1
+  5.                         }
+  6.                 }
+tlater, WAVE == 0  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |      1806     .179402    .3837948          0          1
+tlater, WAVE == 1  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |       383    .1409922    .3484687          0          1
+tlater, WAVE == 2  CLASS TYPE == 1
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |       366    .0928962    .2906843          0          1
+tlater, WAVE == 0  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |      2079    .1832612    .3869736          0          1
+tlater, WAVE == 1  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |      1015    .1586207    .3655021          0          1
+tlater, WAVE == 2  CLASS TYPE == 2
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |       654    .1009174    .3014499          0          1
+tlater, WAVE == 0  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |      2111    .1913785    .3934795          0          1
+tlater, WAVE == 1  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |       893    .1332587    .3400445          0          1
+tlater, WAVE == 2  CLASS TYPE == 3
+
+    Variable |       Obs        Mean    Std. Dev.       Min        Max
+-------------+--------------------------------------------------------
+      tlater |       659    .0955994    .2942644          0          1
+
+. 
+. log close
+       log:  C:\Users\Chris\Desktop\tennessee star\graphs020111.log
+  log type:  text
+ closed on:   3 Feb 2011, 21:58:35
+---------------------------------------------------------------------------------------------------------
